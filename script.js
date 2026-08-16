@@ -1,75 +1,21 @@
-const KEY="forgeWorkoutData";
-const defaultExercises=[
-["Barbell Bench Press","Chest"],["Incline Dumbbell Press","Chest"],["Overhead Press","Shoulders"],
-["Pull-Up","Back"],["Barbell Row","Back"],["Lat Pulldown","Back"],["Squat","Legs"],
-["Romanian Deadlift","Legs"],["Leg Press","Legs"],["Leg Curl","Legs"],["Biceps Curl","Arms"],["Triceps Pushdown","Arms"]
-];
-let data=JSON.parse(localStorage.getItem(KEY)||'null')||{workouts:[],exercises:defaultExercises.map(x=>({name:x[0],muscle:x[1]}))};
-let timer=90,timerInterval=null;
-const $=s=>document.querySelector(s), $$=s=>document.querySelectorAll(s);
-function save(){localStorage.setItem(KEY,JSON.stringify(data))}
-function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2200)}
-function fmtDate(d){return new Date(d+"T12:00:00").toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"})}
-function navigate(page){
-  $$(".page").forEach(p=>p.classList.remove("active"));$("#"+page).classList.add("active");
-  $$(".nav-btn").forEach(b=>b.classList.toggle("active",b.dataset.page===page));
-  const names={dashboard:"Dashboard",workout:"Log Workout",history:"History",exercises:"Exercises"};$("#pageTitle").textContent=names[page];
-  if(page==="dashboard")renderDashboard();if(page==="history")renderHistory();if(page==="exercises")renderExercises();
-}
-$$(".nav-btn").forEach(b=>b.onclick=()=>navigate(b.dataset.page));
-$$("[data-page-jump]").forEach(b=>b.onclick=()=>navigate(b.dataset.pageJump));
-$("#quickWorkout").onclick=()=>navigate("workout");
-$("#dateLabel").textContent=new Date().toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric"});
-$("#workoutDate").value=new Date().toISOString().slice(0,10);
-
-function addSetRow(set={}){
- const row=document.createElement("div");row.className="set-row";
- row.innerHTML=`<label>Exercise<select class="exercise">${data.exercises.map(e=>`<option>${e.name}</option>`).join("")}</select></label>
- <label>Weight<input class="weight" type="number" min="0" step="0.5" placeholder="lb" value="${set.weight||""}"></label>
- <label>Reps<input class="reps" type="number" min="1" step="1" placeholder="0" value="${set.reps||""}"></label>
- <label class="rpe">RPE<input class="rpeval" type="number" min="1" max="10" step=".5" placeholder="—" value="${set.rpe||""}"></label>
- <button class="remove-set" title="Remove">×</button>`;
- $("#setRows").appendChild(row);if(set.exercise)row.querySelector(".exercise").value=set.exercise;
- row.querySelector(".remove-set").onclick=()=>row.remove();
-}
-$("#addSet").onclick=()=>addSetRow();
-addSetRow();
-$("#saveWorkout").onclick=()=>{
- const rows=[...document.querySelectorAll(".set-row")].map(r=>({exercise:r.querySelector(".exercise").value,weight:+r.querySelector(".weight").value,reps:+r.querySelector(".reps").value,rpe:r.querySelector(".rpeval").value?+r.querySelector(".rpeval").value:null})).filter(s=>s.exercise&&s.weight>=0&&s.reps>0);
- if(!rows.length){toast("Add at least one valid set");return}
- data.workouts.unshift({id:Date.now(),name:$("#workoutName").value.trim()||"Workout",date:$("#workoutDate").value,sets:rows});
- save();toast("Workout saved ✓");$("#workoutName").value="";$("#setRows").innerHTML="";addSetRow();navigate("dashboard");
-};
-function getPRs(){
- const best={};data.workouts.forEach(w=>w.sets.forEach(s=>{const est=s.weight*(1+s.reps/30);if(!best[s.exercise]||est>best[s.exercise].est)best[s.exercise]={...s,est}}));return best;
-}
-function renderDashboard(){
- const all=data.workouts.flatMap(w=>w.sets), prs=getPRs(), now=new Date(), week=new Date(now);week.setDate(now.getDate()-6);
- const weekN=data.workouts.filter(w=>new Date(w.date+"T23:59:59")>=week).length;
- $("#weekCount").textContent=weekN;$("#totalWorkouts").textContent=data.workouts.length;$("#totalSets").textContent=all.length;
- $("#totalVolume").textContent=Math.round(all.reduce((a,s)=>a+s.weight*s.reps,0)).toLocaleString();$("#prCount").textContent=Object.keys(prs).length;
- $("#recentWorkouts").innerHTML=data.workouts.slice(0,5).map(w=>`<div class="list-item"><div><div class="list-title">${esc(w.name)}</div><div class="list-sub">${fmtDate(w.date)} · ${w.sets.length} sets</div></div><span class="value">${Math.round(w.sets.reduce((a,s)=>a+s.weight*s.reps,0)).toLocaleString()}</span></div>`).join("")||empty("No workouts yet. Start your first one.");
- $("#prList").innerHTML=Object.entries(prs).slice(0,6).map(([name,s])=>`<div class="list-item"><div><div class="list-title">${esc(name)}</div><div class="list-sub">Best logged set</div></div><span class="value">${s.weight} × ${s.reps}</span></div>`).join("")||empty("Your best sets will appear here.");
-}
-function empty(t){return `<div class="muted" style="padding:20px 0">${t}</div>`}
-function renderHistory(){
- const q=$("#historySearch").value.toLowerCase();
- const ws=data.workouts.filter(w=>w.name.toLowerCase().includes(q)||w.sets.some(s=>s.exercise.toLowerCase().includes(q)));
- $("#historyList").innerHTML=ws.map(w=>`<div class="history-card"><div><h4>${esc(w.name)}</h4><p>${fmtDate(w.date)} · ${w.sets.length} sets · ${Math.round(w.sets.reduce((a,s)=>a+s.weight*s.reps,0)).toLocaleString()} lb volume</p><p style="margin-top:8px">${w.sets.map(s=>`${esc(s.exercise)} ${s.weight}×${s.reps}`).join(" · ")}</p></div><div class="history-actions"><button onclick="deleteWorkout(${w.id})">Delete</button></div></div>`).join("")||empty("No matching workouts.");
-}
-function deleteWorkout(id){if(confirm("Delete this workout?")){data.workouts=data.workouts.filter(w=>w.id!==id);save();renderHistory();renderDashboard();toast("Workout deleted")}}
-$("#historySearch").oninput=renderHistory;
-function renderExercises(){$("#exerciseGrid").innerHTML=data.exercises.map((e,i)=>`<div class="exercise-card"><strong>${esc(e.name)}</strong><small>${esc(e.muscle)}</small></div>`).join("")}
-$("#addExerciseBtn").onclick=()=>$("#exerciseModal").classList.remove("hidden");
-$("#closeModal").onclick=()=>$("#exerciseModal").classList.add("hidden");
-$("#saveExercise").onclick=()=>{const name=$("#newExercise").value.trim();if(!name)return;data.exercises.push({name,muscle:$("#newMuscle").value});save();$("#newExercise").value="";$("#exerciseModal").classList.add("hidden");renderExercises();toast("Exercise added ✓")};
-function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
-function updateTimer(){const m=String(Math.floor(timer/60)).padStart(2,"0"),s=String(timer%60).padStart(2,"0");$("#timerDisplay").textContent=`${m}:${s}`;if(timer<=0){clearInterval(timerInterval);timerInterval=null;toast("Rest timer complete")}}
-$("#timerStart").onclick=()=>{if(timerInterval)return;timerInterval=setInterval(()=>{timer--;updateTimer();if(timer<=0)timer=90},1000)};
-$("#timerReset").onclick=()=>{clearInterval(timerInterval);timerInterval=null;timer=90;updateTimer()};
-$("#timerBtn").onclick=()=>{$("#timerBox").scrollIntoView({behavior:"smooth",block:"center"})};
-$("#exportBtn").onclick=()=>{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:"application/json"}));a.download="forge-workout-backup.json";a.click();toast("Backup exported")};
-$("#importBtn").onclick=()=>$("#importFile").click();
-$("#importFile").onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{data=JSON.parse(r.result);save();renderDashboard();toast("Data imported ✓")}catch{toast("Invalid backup file")}};r.readAsText(f)};
-$("#resetBtn").onclick=()=>{if(confirm("Delete all workout data? This cannot be undone.")){localStorage.removeItem(KEY);location.reload()}};
-renderDashboard();updateTimer();
+const KEY="forgeV2";const defaultExercises=[
+["Barbell Bench Press","Chest"],["Incline Barbell Bench Press","Chest"],["Decline Barbell Bench Press","Chest"],["Dumbbell Bench Press","Chest"],["Incline Dumbbell Press","Chest"],["Decline Dumbbell Press","Chest"],["Machine Chest Press","Chest"],["Cable Chest Press","Chest"],["Cable Fly","Chest"],["Pec Deck","Chest"],["Dumbbell Fly","Chest"],["Push-Up","Chest"],["Weighted Push-Up","Chest"],["Dips","Chest"],
+["Pull-Up","Back"],["Weighted Pull-Up","Back"],["Chin-Up","Back"],["Lat Pulldown","Back"],["Close-Grip Lat Pulldown","Back"],["Barbell Row","Back"],["Pendlay Row","Back"],["Dumbbell Row","Back"],["Chest-Supported Row","Back"],["Seated Cable Row","Back"],["T-Bar Row","Back"],["Machine Row","Back"],["Straight-Arm Pulldown","Back"],["Back Extension","Back"],
+["Overhead Press","Shoulders"],["Dumbbell Shoulder Press","Shoulders"],["Arnold Press","Shoulders"],["Machine Shoulder Press","Shoulders"],["Cable Shoulder Press","Shoulders"],["Dumbbell Lateral Raise","Shoulders"],["Cable Lateral Raise","Shoulders"],["Rear Delt Fly","Shoulders"],["Face Pull","Shoulders"],["Front Raise","Shoulders"],["Upright Row","Shoulders"],
+["Back Squat","Legs"],["Front Squat","Legs"],["Hack Squat","Legs"],["Leg Press","Legs"],["Bulgarian Split Squat","Legs"],["Walking Lunge","Legs"],["Reverse Lunge","Legs"],["Step-Up","Legs"],["Romanian Deadlift","Legs"],["Stiff-Leg Deadlift","Legs"],["Conventional Deadlift","Legs"],["Trap-Bar Deadlift","Legs"],["Hip Thrust","Legs"],["Leg Extension","Legs"],["Leg Curl","Legs"],["Nordic Curl","Legs"],["Calf Raise","Legs"],["Seated Calf Raise","Legs"],
+["Barbell Curl","Arms"],["EZ-Bar Curl","Arms"],["Dumbbell Curl","Arms"],["Hammer Curl","Arms"],["Incline Dumbbell Curl","Arms"],["Preacher Curl","Arms"],["Cable Curl","Arms"],["Reverse Curl","Arms"],["Close-Grip Bench Press","Arms"],["Skull Crusher","Arms"],["Overhead Triceps Extension","Arms"],["Cable Pushdown","Arms"],["Rope Pushdown","Arms"],["Triceps Kickback","Arms"],
+["Cable Crunch","Core"],["Hanging Leg Raise","Core"],["Hanging Knee Raise","Core"],["Ab Wheel","Core"],["Plank","Core"],["Side Plank","Core"],["Russian Twist","Core"],["Decline Sit-Up","Core"],["Weighted Crunch","Core"],
+["Farmer Carry","Other"],["Shrug","Other"],["Dumbbell Shrug","Other"],["Cable Shrug","Other"],["Good Morning","Other"],["Sled Push","Other"],["Sled Drag","Other"],["Battle Rope","Other"],["Kettlebell Swing","Other"],["Turkish Get-Up","Other"]
+];let data=JSON.parse(localStorage.getItem(KEY)||"null")||{workouts:[],exercises:defaultExercises.map(x=>({name:x[0],muscle:x[1]}))};let t=90,interval=null;
+const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);const esc=x=>String(x).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));const save=()=>localStorage.setItem(KEY,JSON.stringify(data));function toast(x){let t=$("#toast");t.textContent=x;t.style.opacity=1;t.style.transform="translate(-50%,0)";setTimeout(()=>{t.style.opacity=0;t.style.transform="translate(-50%,20px)"},1800)}
+function go(id){$$(".screen").forEach(x=>x.classList.remove("active"));$("#"+id).classList.add("active");$$(".bottom button").forEach(x=>x.classList.toggle("active",x.dataset.go===id));$("#title").textContent={home:"Dashboard",log:"Log Workout",history:"History",progress:"Progress",library:"Exercises"}[id];if(id==="home")dashboard();if(id==="history")history();if(id==="progress")progress();if(id==="library")library()}
+$$("[data-go]").forEach(x=>x.onclick=()=>go(x.dataset.go));$("#quick").onclick=()=>go("log");
+$("#wdate").value=new Date().toISOString().slice(0,10);
+function addRow(){let r=document.createElement("div");r.className="setrow";r.innerHTML=`<label>EXERCISE<select>${data.exercises.map(e=>`<option>${esc(e.name)}</option>`).join("")}</select></label><label>LB<input class="wt" type="number" min="0" placeholder="0"></label><label>REPS<input class="rp" type="number" min="1" placeholder="0"></label><button class="remove">×</button>`;$("#rows").append(r);r.querySelector(".remove").onclick=()=>r.remove()}$("#add").onclick=addRow;addRow();
+$("#save").onclick=()=>{let sets=[...$$(".setrow")].map(r=>({exercise:r.querySelector("select").value,weight:+r.querySelector(".wt").value,reps:+r.querySelector(".rp").value})).filter(s=>s.weight>=0&&s.reps>0);if(!sets.length)return toast("Add a valid set first");data.workouts.unshift({id:Date.now(),name:$("#wname").value.trim()||"Workout",date:$("#wdate").value,sets});save();$("#wname").value="";$("#rows").innerHTML="";addRow();toast("Workout saved ✓");go("home")};
+function prs(){let p={};data.workouts.forEach(w=>w.sets.forEach(s=>{let e=s.weight*(1+s.reps/30);if(!p[s.exercise]||e>p[s.exercise].est)p[s.exercise]={...s,est:e}}));return p}
+function dashboard(){let sets=data.workouts.flatMap(w=>w.sets),p=prs(),cut=new Date();cut.setDate(cut.getDate()-6);$("#workouts").textContent=data.workouts.length;$("#sets").textContent=sets.length;$("#volume").textContent=Math.round(sets.reduce((a,s)=>a+s.weight*s.reps,0)).toLocaleString();$("#prs").textContent=Object.keys(p).length;$("#week").textContent=data.workouts.filter(w=>new Date(w.date+"T23:59")>=cut).length;$("#recent").innerHTML=data.workouts.slice(0,5).map(w=>`<div class=item><div><b>${esc(w.name)}</b><small>${w.date} · ${w.sets.length} sets</small></div><span class=value>${Math.round(w.sets.reduce((a,s)=>a+s.weight*s.reps,0)).toLocaleString()} lb</span></div>`).join("")||`<div class=empty>No sessions yet. Start training.</div>`;$("#prlist").innerHTML=Object.entries(p).slice(0,6).map(([n,s])=>`<div class=item><div><b>${esc(n)}</b><small>Best estimated strength</small></div><span class=value>${s.weight} × ${s.reps}</span></div>`).join("")||`<div class=empty>Your PRs will appear here.</div>`}
+function history(){let q=($("#search").value||"").toLowerCase();let w=data.workouts.filter(x=>x.name.toLowerCase().includes(q)||x.sets.some(s=>s.exercise.toLowerCase().includes(q)));$("#historylist").innerHTML=w.map(x=>`<div class=historyitem><h4>${esc(x.name)}</h4><p>${x.date} · ${x.sets.length} sets · ${Math.round(x.sets.reduce((a,s)=>a+s.weight*s.reps,0)).toLocaleString()} lb volume</p><p>${x.sets.map(s=>`${esc(s.exercise)} ${s.weight}×${s.reps}`).join(" · ")}</p><button class=mini onclick="del(${x.id})">DELETE</button></div>`).join("")||`<div class=empty>No matching sessions.</div>`}$("#search").oninput=history;function del(id){if(confirm("Delete this workout?")){data.workouts=data.workouts.filter(x=>x.id!==id);save();history();dashboard();toast("Deleted")}}
+function library(){let q=($("#exsearch").value||"").toLowerCase();let e=data.exercises.filter(x=>x.name.toLowerCase().includes(q)||x.muscle.toLowerCase().includes(q));$("#librarygrid").innerHTML=e.map(x=>`<div class=exercise><b>${esc(x.name)}</b><small>${esc(x.muscle)}</small></div>`).join("")}$("#exsearch").oninput=library;
+function progress(){let sets=data.workouts.flatMap(w=>w.sets),p=prs(),vol=sets.reduce((a,s)=>a+s.weight*s.reps,0),top=Object.values(p).sort((a,b)=>b.est-a.est).slice(0,5);$("#progressgrid").innerHTML=`<div class=metric><small>TOTAL VOLUME</small><b>${Math.round(vol).toLocaleString()} lb</b><div class=bar><i style="width:${Math.min(100,vol/500)}%"></i></div></div><div class=metric><small>AVERAGE SET WEIGHT</small><b>${sets.length?Math.round(sets.reduce((a,s)=>a+s.weight,0)/sets.length):0} lb</b><div class=bar><i style="width:58%"></i></div></div>`+top.map(s=>`<div class=metric><small>${esc(s.exercise).toUpperCase()}</small><b>${s.weight} × ${s.reps}</b><div class=bar><i style="width:${Math.min(100,s.est/3)}%"></i></div></div>`).join("")}
+function tick(){let m=String(Math.floor(t/60)).padStart(2,"0"),s=String(t%60).padStart(2,"0");$("#timer").textContent=`${m}:${s}`;$("#timerbar").style.width=(t/90*100)+"%"}$("#start").onclick=()=>{if(interval)return;interval=setInterval(()=>{t--;tick();if(t<=0){clearInterval(interval);interval=null;t=90;tick();toast("REST COMPLETE")}},1000)};$("#reset").onclick=()=>{clearInterval(interval);interval=null;t=90;tick()};$("#timerJump").onclick=()=>$("#timer").scrollIntoView({behavior:"smooth"});tick();dashboard();
