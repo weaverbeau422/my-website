@@ -1,76 +1,9 @@
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#090b0d">
-<title>FORGE — Fitness</title>
-<link rel="stylesheet" href="style.css">
-</head>
-<body>
-<div class="app">
-<header class="top">
-  <div><div class="tiny">FORGE / TRAINING SYSTEM</div><h1 id="title">Dashboard</h1></div>
-  <button class="icon" id="quick">＋</button>
-</header>
-
-<main>
-<section id="home" class="screen active">
-  <div class="hero">
-    <div><span class="status">● SYSTEM READY</span><h2>Build<br><em>strength.</em></h2><p>Track every set. See every gain.</p></div>
-    <div class="orb"><b id="week">0</b><small>SESSIONS<br>THIS WEEK</small></div>
-  </div>
-  <div class="stats">
-    <article><small>WORKOUTS</small><b id="workouts">0</b></article>
-    <article><small>SETS</small><b id="sets">0</b></article>
-    <article><small>VOLUME</small><b id="volume">0</b><small>LB</small></article>
-    <article><small>PRs</small><b id="prs">0</b></article>
-  </div>
-  <div class="sectionhead"><h3>Recent sessions</h3><button data-go="history">VIEW ALL</button></div>
-  <div id="recent" class="cards"></div>
-  <div class="sectionhead"><h3>Personal records</h3></div>
-  <div id="prlist" class="cards"></div>
-</section>
-
-<section id="log" class="screen">
-  <div class="panel">
-    <div class="sectionhead"><div><h3>New session</h3><p>Log your training as you go.</p></div><button class="mini" id="timerJump">⏱</button></div>
-    <input id="wname" placeholder="Workout name — e.g. Push A">
-    <input id="wdate" type="date">
-    <div id="rows"></div>
-    <button class="add" id="add">＋ ADD SET</button>
-    <button class="save" id="save">FINISH WORKOUT</button>
-  </div>
-  <div class="panel timer">
-    <div class="tiny">REST PROTOCOL</div><strong id="timer">01:30</strong>
-    <div class="timerbar"><i id="timerbar"></i></div>
-    <button class="mini" id="start">START</button><button class="mini" id="reset">RESET</button>
-  </div>
-</section>
-
-<section id="history" class="screen">
- <div class="panel"><div class="sectionhead"><div><h3>History</h3><p>Every saved session.</p></div></div><input id="search" placeholder="Search workouts or exercises…"><div id="historylist"></div></div>
-</section>
-
-<section id="library" class="screen">
- <div class="panel"><div class="sectionhead"><div><h3>Exercise library</h3><p>100+ movements, ready to train.</p></div></div><input id="exsearch" placeholder="Search exercises…"><div id="librarygrid" class="grid"></div></div>
-</section>
-
-<section id="progress" class="screen">
- <div class="panel"><div class="sectionhead"><div><h3>Progress</h3><p>Your training trends.</p></div></div>
- <div id="progressgrid" class="progressgrid"></div></div>
-</section>
-</main>
-
-<nav class="bottom">
-<button class="active" data-go="home">⌂<span>HOME</span></button>
-<button data-go="log">＋<span>TRAIN</span></button>
-<button data-go="history">◷<span>HISTORY</span></button>
-<button data-go="progress">↗<span>PROGRESS</span></button>
-<button data-go="library">▦<span>EXERCISES</span></button>
-</nav>
-<div id="toast"></div>
-</div>
-<script src="script.js"></script>
-</body>
-</html>
+<!doctype html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#080a0c"><title>FORGE</title><link rel="stylesheet" href="style.css"></head><body><div class="app"><header><div><small>FORGE / TRAINING SYSTEM</small><h1 id="title">Home</h1></div><button id="settings">⚙</button></header><main>
+<section id="home" class="screen active"><div class="hero"><div><small>● SYSTEM READY</small><h2 id="welcome">Welcome.</h2><p id="sub">Ready for your next session?</p></div><div class="orb"><b id="week">0</b><span>THIS WEEK</span></div></div><div class="stats"><div><small>WORKOUTS</small><b id="workouts">0</b></div><div><small>SETS</small><b id="sets">0</b></div><div><small>VOLUME</small><b id="volume">0</b></div><div><small>PRS</small><b id="prs">0</b></div></div><div class="head"><h3>My PRs</h3><button id="edit">EDIT</button></div><div id="pr" class="grid2"></div><div class="head"><h3>Recent sessions</h3><button data-go="history">VIEW ALL</button></div><div id="recent"></div></section>
+<section id="progress" class="screen"><div class="head"><div><h3>Progress</h3><p>Strength and volume.</p></div></div><div id="metrics" class="grid2"></div><div class="head"><h3>Exercise strength</h3></div><div id="strength"></div></section>
+<section id="session" class="screen"><div class="panel"><div class="head"><div><h3>New session</h3><p>Choose a split.</p></div></div><div class="splits"><button data-split="Push">PUSH<small>Chest · shoulders · triceps</small></button><button data-split="Pull">PULL<small>Back · biceps · rear delts</small></button><button data-split="Legs">LEGS<small>Quads · hamstrings · calves</small></button><button data-split="Custom">CUSTOM<small>Build it yourself</small></button></div><input id="sname" placeholder="Session name"><input id="date" type="date"></div><div class="panel"><div class="head"><div><h3>Exercises</h3><p id="hint">Choose a split or add exercises.</p></div><button id="add">＋ ADD</button></div><div id="chosen"></div><button class="finish" id="finish">FINISH SESSION</button></div></section>
+<section id="history" class="screen"><div class="panel"><div class="head"><h3>History</h3></div><input id="hsearch" placeholder="Search sessions…"><div id="hlist"></div></div></section>
+<section id="library" class="screen"><div class="panel"><div class="head"><div><h3>Exercise library</h3><p>Browse movements.</p></div></div><input id="lsearch" placeholder="Search exercises…"><div id="llist"></div></div></section>
+<section id="settingsScreen" class="screen"><div class="panel"><div class="head"><h3>Profile</h3></div><label>Name<input id="name"></label><label>Age<input id="age" type="number"></label><label>Height<input id="height"></label><label>Weight<input id="weight" type="number"></label><label class="toggle">Show profile on Home<input id="show" type="checkbox"><span></span></label><label>Units<select id="unit"><option>lb</option><option>kg</option></select></label><button class="finish" id="save">SAVE PROFILE</button></div><div class="panel"><h3>Data</h3><button class="mini" id="backup">EXPORT BACKUP</button><button class="mini" id="reset">RESET DATA</button></div></section></main>
+<nav><button data-go="home">⌂<span>HOME</span></button><button data-go="progress">↗<span>PROGRESS</span></button><button data-go="session" class="plus">＋</button><button data-go="history">◷<span>HISTORY</span></button><button data-go="library">▦<span>LIBRARY</span></button></nav>
+<div id="modal" class="modal"><div class="modalbox"><div class="head"><h3>Add exercise</h3><button id="close">×</button></div><div id="muscles" class="muscles"></div><div id="choices"></div><button class="finish" id="done">DONE</button></div></div><div id="toast"></div></div><script src="script.js"></script></body></html>
